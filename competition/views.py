@@ -258,7 +258,7 @@ class ProblemViewSet(viewsets.ModelViewSet):
             if zfile.testzip():
                 raise exceptions.ParseError(detail='Zip file is corrupted')
             pdf_files = [name for name in zfile.namelist()
-                        if name.endswith('.pdf')]
+                         if name.endswith('.pdf')]
             errors = []
             for filename in pdf_files:
                 try:
@@ -266,7 +266,8 @@ class ProblemViewSet(viewsets.ModelViewSet):
                     score = int(parts[0])
                     problem_pk = int(parts[-2])
                     registration_pk = int(parts[-1])
-                    event_reg = EventRegistration.objects.get(pk=registration_pk)
+                    event_reg = EventRegistration.objects.get(
+                        pk=registration_pk)
                     solution = Solution.objects.get(semester_registration=event_reg,
                                                     problem=problem_pk)
                 except (IndexError, ValueError, AssertionError):
@@ -285,7 +286,7 @@ class ProblemViewSet(viewsets.ModelViewSet):
                     errors.append({
                         'filename': filename,
                         'status': f'Solution with registration id {registration_pk}'
-                                f'and problem id {problem_pk} does not exist'
+                        f'and problem id {problem_pk} does not exist'
                     })
                     continue
 
@@ -349,37 +350,23 @@ class SolutionViewSet(viewsets.ModelViewSet):
     queryset = Solution.objects.all()
     serializer_class = SolutionSerializer
 
-    def add_vote(self, request, positive, solution):
-        if hasattr(solution, 'votes'):
-            if solution.votes.is_positive == positive:
-                return Response(status=status.HTTP_409_CONFLICT)
-
-            solution.votes.delete()
-        if 'comment' in request.data:
-            Vote.objects.create(
-                solution=solution, is_positive=positive, comment=request.data['comment'])
-        else:
-            Vote.objects.create(solution=solution, is_positive=positive)
-        return Response(status=status.HTTP_201_CREATED)
-
     @action(methods=['post'], detail=True, url_path='add-positive-vote',
             permission_classes=[IsAdminUser])
     def add_positive_vote(self, request, pk=None):
-        solution = self.get_object()
-        return self.add_vote(request, True, solution)
+        self.get_object().set_vote(Vote.POSITIVE)
+        return Response('Pridaný pozitívny hlas.', status=status.HTTP_200_OK)
 
     @action(methods=['post'], detail=True, url_path='add-negative-vote',
             permission_classes=[IsAdminUser])
     def add_negative_vote(self, request, pk=None):
-        solution = self.get_object()
-        return self.add_vote(request, False, solution)
+        self.get_object().set_vote(Vote.NEGATIVE)
+        return Response('Pridaný negatívny hlas.', status=status.HTTP_200_OK)
 
     @action(methods=['post'], detail=True, url_path='remove-vote',
             permission_classes=[IsAdminUser])
     def remove_vote(self, request, pk=None):
-        solution = self.get_object()
-        Vote.objects.filter(solution=solution).delete()
-        return Response(status=status.HTTP_200_OK)
+        self.get_object().set_vote(Vote.NONE)
+        return Response('Hlas Odobraný.', status=status.HTTP_200_OK)
 
     @action(methods=['get'], detail=True, url_path='download-solution')
     def download_solution(self, request, pk=None):

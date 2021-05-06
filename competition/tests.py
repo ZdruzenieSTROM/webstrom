@@ -343,3 +343,43 @@ class TestCompetition(APITestCase, PermissionTestMixin):
         self.check_permissions(self.URL_PREFIX + '/',
                                'POST', self.ALL_FORBIDDEN,
                                {'name': 'Ilegalna sutaz', 'start_year': 2020})
+
+
+class TestSolution(APITestCase, PermissionTestMixin):
+    '''competition/solution'''
+    URL_PREFIX = '/competition/solution'
+
+    fixtures = get_app_fixtures([
+        'base',
+        'competition',
+        'personal',
+        'user'
+    ])
+
+    def setUp(self):
+        self.create_users()
+
+    def test_add_positive_vote(self):
+        ''' add_positive_vote OK'''
+        self.check_permissions(self.URL_PREFIX + '/0/add-positive-vote/',
+                               'POST',
+                               self.ONLY_STAFF_OK_RESPONSES, {})
+        vote = models.Solution.objects.get(pk=0).vote
+        self.assertEqual(vote, 1)
+
+    def test_add_negative_vote(self):
+        ''' add_negative_vote OK'''
+        self.check_permissions(self.URL_PREFIX + '/0/add-negative-vote/',
+                               'POST',
+                               self.ONLY_STAFF_OK_RESPONSES, {})
+        vote = models.Solution.objects.get(pk=0).vote
+        self.assertEqual(vote, -1)
+
+    def test_remove_vote(self):
+        ''' remove_vote OK'''
+        models.Solution.objects.get(pk=0).set_vote(1)
+        self.check_permissions(self.URL_PREFIX + '/0/remove-vote/',
+                               'POST',
+                               self.ONLY_STAFF_OK_RESPONSES, {})
+        vote = models.Solution.objects.get(pk=0).vote
+        self.assertEqual(vote, 0)
